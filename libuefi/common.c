@@ -34,6 +34,29 @@ void puth(unsigned long long val, unsigned char num_digits)
 	puts(str);
 }
 
+void putas(char s[], unsigned long long num_digits)
+{
+	unsigned long long i;
+	for (i = 0; i < num_digits; i++) {
+		if (s[i] == '\0')
+			break;
+
+		if ('0' <= s[i] && s[i] <= '9')
+			putc(L'0' + s[i] - '0');
+		else if ('A' <= s[i] && s[i] <= 'Z')
+			putc(L'A' + s[i] - 'A');
+		else if ('a' <= s[i] && s[i] <= 'z')
+			putc(L'a' + s[i] - 'a');
+		else {
+			switch (s[i]) {
+			case ' ':
+				putc(L' ');
+				break;
+			}
+		}
+	}
+}
+
 unsigned short getc(void)
 {
 	struct EFI_INPUT_KEY key;

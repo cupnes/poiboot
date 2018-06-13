@@ -30,7 +30,6 @@ void put_n_bytes(unsigned char *addr, unsigned int num);
 void put_param(unsigned short *name, unsigned long long val);
 void dump_efi_configuration_table(void);
 void *find_efi_acpi_table(void);
-void putas(char s[], unsigned long long num_digits);
 
 void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 {
@@ -255,27 +254,4 @@ void *find_efi_acpi_table(void)
 		}
 	}
 	return NULL;
-}
-
-void putas(char s[], unsigned long long num_digits)
-{
-	unsigned long long i;
-	for (i = 0; i < num_digits; i++) {
-		if (s[i] == '\0')
-			break;
-
-		if ('0' <= s[i] && s[i] <= '9')
-			putc(L'0' + s[i] - '0');
-		else if ('A' <= s[i] && s[i] <= 'Z')
-			putc(L'A' + s[i] - 'A');
-		else if ('a' <= s[i] && s[i] <= 'z')
-			putc(L'a' + s[i] - 'a');
-		else {
-			switch (s[i]) {
-			case ' ':
-				putc(L' ');
-				break;
-			}
-		}
-	}
 }
