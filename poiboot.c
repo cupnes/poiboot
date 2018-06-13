@@ -28,8 +28,6 @@ unsigned char load_fs(
 	unsigned long long fs_start);
 void put_n_bytes(unsigned char *addr, unsigned int num);
 void put_param(unsigned short *name, unsigned long long val);
-void dump_efi_configuration_table(void);
-void *find_efi_acpi_table(void);
 
 void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 {
@@ -205,53 +203,4 @@ void put_param(unsigned short *name, unsigned long long val)
 	puts(L": 0x");
 	puth(val, 16);
 	puts(L"\r\n");
-}
-
-void dump_efi_configuration_table(void)
-{
-	unsigned long long i;
-	for (i = 0; i < ST->NumberOfTableEntries; i++) {
-		puth(i, 1);
-		putc(L':');
-		puth((unsigned long long)&ST->ConfigurationTable[i], 16);
-		putc(L':');
-		puth(ST->ConfigurationTable[i].VendorGuid.Data1, 8);
-		putc(L' ');
-		puth(ST->ConfigurationTable[i].VendorGuid.Data2, 4);
-		putc(L' ');
-		puth(ST->ConfigurationTable[i].VendorGuid.Data3, 4);
-		putc(L' ');
-		unsigned char j;
-		for (j = 0; j < 8; j++)
-			puth(ST->ConfigurationTable[i].VendorGuid.Data4[j], 2);
-		putc(L':');
-		puth((unsigned long long)ST->ConfigurationTable[i].VendorTable,
-		     16);
-		puts(L"\r\n");
-	}
-}
-
-void *find_efi_acpi_table(void)
-{
-	const struct EFI_GUID efi_acpi_table = {
-		0x8868e871, 0xe4f1,0x11d3,
-		{0xbc, 0x22, 0x00, 0x80, 0xc7, 0x3c, 0x88, 0x81}};
-
-	unsigned long long i;
-	for (i = 0; i < ST->NumberOfTableEntries; i++) {
-		struct EFI_GUID *guid = &ST->ConfigurationTable[i].VendorGuid;
-		if ((guid->Data1 == efi_acpi_table.Data1)
-		    && (guid->Data2 == efi_acpi_table.Data2)
-		    && (guid->Data3 == efi_acpi_table.Data3)) {
-			unsigned char is_equal = TRUE;
-			unsigned char j;
-			for (j = 0; j < 8; j++) {
-				if (guid->Data4[j] != efi_acpi_table.Data4[j])
-					is_equal = FALSE;
-			}
-			if (is_equal == TRUE)
-				return ST->ConfigurationTable[i].VendorTable;
-		}
-	}
-	return NULL;
 }

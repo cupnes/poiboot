@@ -505,5 +505,7 @@ extern struct EFI_GUID dpp_guid;
 extern struct EFI_GUID fi_guid;
 
 void efi_init(struct EFI_SYSTEM_TABLE *SystemTable);
+void dump_efi_configuration_table(void);
+void *find_efi_acpi_table(void);
 
 #endif
