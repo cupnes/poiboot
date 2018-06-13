@@ -7,36 +7,99 @@
 #define CONF_FILE_NAME	L"poiboot.conf"
 
 #define KERNEL_FILE_NAME	L"kernel.bin"
-#define APPS_FILE_NAME	L"fs.img"
+#define FS_FILE_NAME	L"fs.img"
 
 #define MB		1048576	/* 1024 * 1024 */
 
+struct platform_info {
+	struct fb fb;
+	void *rsdp;
+} pi;
+
+void load_config(
+	struct EFI_FILE_PROTOCOL *root, unsigned short *conf_file_name,
+	unsigned long long *kernel_start, unsigned long long *stack_base,
+	unsigned long long *fs_start);
+void load_kernel(
+	struct EFI_FILE_PROTOCOL *root, unsigned short *kernel_file_name,
+	unsigned long long kernel_start);
+unsigned char load_fs(
+	struct EFI_FILE_PROTOCOL *root, unsigned short *fs_file_name,
+	unsigned long long fs_start);
 void put_n_bytes(unsigned char *addr, unsigned int num);
 void put_param(unsigned short *name, unsigned long long val);
+void dump_efi_configuration_table(void);
+void *find_efi_acpi_table(void);
+void putas(char s[], unsigned long long num_digits);
 
 void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 {
-	unsigned long long status;
-	unsigned char has_apps = TRUE;
-
 	efi_init(SystemTable);
 
 	puts(L"Starting OS5 UEFI bootloader ...\r\n");
 
+	/* ボリュームのルートディレクトリを開く */
 	struct EFI_FILE_PROTOCOL *root;
-	status = SFSP->OpenVolume(SFSP, &root);
+	unsigned long long status = SFSP->OpenVolume(SFSP, &root);
 	assert(status, L"SFSP->OpenVolume");
 
+	/* コンフィグファイル・カーネルバイナリ・ファイルシステムイメージを
+	 * 開き、コンフィグファイルの内容に従って
+	 * カーネルバイナリとファイルシステムイメージをメモリへロードする */
+	unsigned long long kernel_start, stack_base, fs_start;
+	load_config(root, CONF_FILE_NAME,
+		    &kernel_start, &stack_base, &fs_start);
+	load_kernel(root, KERNEL_FILE_NAME, kernel_start);
+	unsigned char has_fs = load_fs(root, FS_FILE_NAME, fs_start);
 
-	/* load config file */
+	/* カーネルへ引数として渡す内容を変数に準備する */
+	unsigned long long kernel_arg1 = (unsigned long long)ST;
+	put_param(L"kernel_arg1", kernel_arg1);
+
+	init_fb();
+	pi.fb.base = fb.base;
+	pi.fb.size = fb.size;
+	pi.fb.hr = fb.hr;
+	pi.fb.vr = fb.vr;
+	pi.rsdp = find_efi_acpi_table();
+	unsigned long long kernel_arg2 = (unsigned long long)&pi;
+	put_param(L"kernel_arg2", kernel_arg2);
+	unsigned long long kernel_arg3;
+	if (has_fs == TRUE)
+		kernel_arg3 = fs_start;
+	else
+		kernel_arg3 = 0;
+	put_param(L"kernel_arg3", kernel_arg3);
+
+	/* UEFIのブートローダー向け機能を終了させる */
+	exit_boot_services(ImageHandle);
+
+	/* カーネルへ渡す引数設定(引数に使うレジスタへセットする) */
+	unsigned long long _sb = stack_base, _ks = kernel_start;
+	__asm__ ("	mov	%0, %%rdx\n"
+		 "	mov	%1, %%rsi\n"
+		 "	mov	%2, %%rdi\n"
+		 "	mov	%3, %%rsp\n"
+		 "	jmp	*%4\n"
+		 ::"m"(kernel_arg3), "m"(kernel_arg2), "m"(kernel_arg1),
+		  "m"(_sb), "m"(_ks));
+
+	while (TRUE);
+}
+
+void load_config(
+	struct EFI_FILE_PROTOCOL *root, unsigned short *conf_file_name,
+	unsigned long long *kernel_start, unsigned long long *stack_base,
+	unsigned long long *fs_start)
+{
 	struct EFI_FILE_PROTOCOL *file_conf;
-	status = root->Open(
-		root, &file_conf, CONF_FILE_NAME, EFI_FILE_MODE_READ, 0);
+	unsigned long long status = root->Open(
+		root, &file_conf, conf_file_name, EFI_FILE_MODE_READ, 0);
 	assert(status, L"Can't open config file.");
 
 	struct config {
 		char kernel_start[17];
-		char apps_start[17];
+		char fs_start[17];
 	} conf;
 
 	unsigned long long conf_size = sizeof(conf);
@@ -47,19 +110,22 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 	puts(L"done\r\n");
 	file_conf->Close(file_conf);
 
-	unsigned long long kernel_start = hexstrtoull(conf.kernel_start);
-	put_param(L"kernel_start", kernel_start);
-	unsigned long long stack_base = kernel_start + (1 * MB);
+	*kernel_start = hexstrtoull(conf.kernel_start);
+	put_param(L"kernel_start", *kernel_start);
+	*stack_base = *kernel_start + (1 * MB);
 			/* stack_baseはスタックの底のアドレス(上へ伸びる) */
-	put_param(L"stack_base", stack_base);
-	unsigned long long apps_start = hexstrtoull(conf.apps_start);
-	put_param(L"apps_start", apps_start);
+	put_param(L"stack_base", *stack_base);
+	*fs_start = hexstrtoull(conf.fs_start);
+	put_param(L"fs_start", *fs_start);
+}
 
-
-	/* load the kernel */
+void load_kernel(
+	struct EFI_FILE_PROTOCOL *root, unsigned short *kernel_file_name,
+	unsigned long long kernel_start)
+{
 	struct EFI_FILE_PROTOCOL *file_kernel;
-	status = root->Open(
-		root, &file_kernel, KERNEL_FILE_NAME, EFI_FILE_MODE_READ, 0);
+	unsigned long long status = root->Open(
+		root, &file_kernel, kernel_file_name, EFI_FILE_MODE_READ, 0);
 	assert(status, L"root->Open(kernel)");
 
 	unsigned long long kernel_size = get_file_size(file_kernel);
@@ -91,61 +157,38 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 		(unsigned char *)(kernel_start + kernel_size - 16);
 	put_n_bytes(kernel_last, 16);
 	puts(L"\r\n");
+}
 
-
-	/* load the applications */
-	struct EFI_FILE_PROTOCOL *file_apps;
-	status = root->Open(
-		root, &file_apps, APPS_FILE_NAME, EFI_FILE_MODE_READ, 0);
-	if (!check_warn_error(status, L"root->Open(apps)")) {
-		puts(L"apps load failure. skip.\r\n");
-		has_apps = FALSE;
+unsigned char load_fs(
+	struct EFI_FILE_PROTOCOL *root, unsigned short *fs_file_name,
+	unsigned long long fs_start)
+{
+	struct EFI_FILE_PROTOCOL *file_fs;
+	unsigned long long status = root->Open(
+		root, &file_fs, fs_file_name, EFI_FILE_MODE_READ, 0);
+	if (!check_warn_error(status, L"root->Open(fs)")) {
+		puts(L"fs load failure. skip.\r\n");
+		return FALSE;
 	}
 
-	if (has_apps) {
-		unsigned long long apps_size = get_file_size(file_apps);
-		put_param(L"apps_size", apps_size);
+	unsigned long long fs_size = get_file_size(file_fs);
+	put_param(L"fs_size", fs_size);
 
-		puts(L"load apps ... ");
-		safety_file_read(file_apps, (void *)apps_start, apps_size);
-		puts(L"done\r\n");
-		file_apps->Close(file_apps);
+	puts(L"load fs ... ");
+	safety_file_read(file_fs, (void *)fs_start, fs_size);
+	puts(L"done\r\n");
+	file_fs->Close(file_fs);
 
-		puts(L"apps first 16 bytes: 0x");
-		put_n_bytes((unsigned char *)apps_start, 16);
-		puts(L"\r\n");
-		puts(L"apps last 16 bytes: 0x");
-		unsigned char *apps_last =
-			(unsigned char *)(apps_start + apps_size - 16);
-		put_n_bytes(apps_last, 16);
-		puts(L"\r\n");
-	}
+	puts(L"fs first 16 bytes: 0x");
+	put_n_bytes((unsigned char *)fs_start, 16);
+	puts(L"\r\n");
+	puts(L"fs last 16 bytes: 0x");
+	unsigned char *fs_last =
+		(unsigned char *)(fs_start + fs_size - 16);
+	put_n_bytes(fs_last, 16);
+	puts(L"\r\n");
 
-
-	unsigned long long kernel_arg1 = (unsigned long long)ST;
-	put_param(L"kernel_arg1", kernel_arg1);
-	init_fb();
-	unsigned long long kernel_arg2 = (unsigned long long)&fb;
-	put_param(L"kernel_arg2", kernel_arg2);
-	unsigned long long kernel_arg3;
-	if (has_apps == TRUE)
-		kernel_arg3 = apps_start;
-	else
-		kernel_arg3 = 0;
-	put_param(L"kernel_arg3", kernel_arg3);
-
-	exit_boot_services(ImageHandle);
-
-	unsigned long long _sb = stack_base, _ks = kernel_start;
-	__asm__ ("	mov	%0, %%rdx\n"
-		 "	mov	%1, %%rsi\n"
-		 "	mov	%2, %%rdi\n"
-		 "	mov	%3, %%rsp\n"
-		 "	jmp	*%4\n"
-		 ::"m"(kernel_arg3), "m"(kernel_arg2), "m"(kernel_arg1),
-		  "m"(_sb), "m"(_ks));
-
-	while (TRUE);
+	return TRUE;
 }
 
 void put_n_bytes(unsigned char *addr, unsigned int num)
@@ -163,4 +206,76 @@ void put_param(unsigned short *name, unsigned long long val)
 	puts(L": 0x");
 	puth(val, 16);
 	puts(L"\r\n");
+}
+
+void dump_efi_configuration_table(void)
+{
+	unsigned long long i;
+	for (i = 0; i < ST->NumberOfTableEntries; i++) {
+		puth(i, 1);
+		putc(L':');
+		puth((unsigned long long)&ST->ConfigurationTable[i], 16);
+		putc(L':');
+		puth(ST->ConfigurationTable[i].VendorGuid.Data1, 8);
+		putc(L' ');
+		puth(ST->ConfigurationTable[i].VendorGuid.Data2, 4);
+		putc(L' ');
+		puth(ST->ConfigurationTable[i].VendorGuid.Data3, 4);
+		putc(L' ');
+		unsigned char j;
+		for (j = 0; j < 8; j++)
+			puth(ST->ConfigurationTable[i].VendorGuid.Data4[j], 2);
+		putc(L':');
+		puth((unsigned long long)ST->ConfigurationTable[i].VendorTable,
+		     16);
+		puts(L"\r\n");
+	}
+}
+
+void *find_efi_acpi_table(void)
+{
+	const struct EFI_GUID efi_acpi_table = {
+		0x8868e871, 0xe4f1,0x11d3,
+		{0xbc, 0x22, 0x00, 0x80, 0xc7, 0x3c, 0x88, 0x81}};
+
+	unsigned long long i;
+	for (i = 0; i < ST->NumberOfTableEntries; i++) {
+		struct EFI_GUID *guid = &ST->ConfigurationTable[i].VendorGuid;
+		if ((guid->Data1 == efi_acpi_table.Data1)
+		    && (guid->Data2 == efi_acpi_table.Data2)
+		    && (guid->Data3 == efi_acpi_table.Data3)) {
+			unsigned char is_equal = TRUE;
+			unsigned char j;
+			for (j = 0; j < 8; j++) {
+				if (guid->Data4[j] != efi_acpi_table.Data4[j])
+					is_equal = FALSE;
+			}
+			if (is_equal == TRUE)
+				return ST->ConfigurationTable[i].VendorTable;
+		}
+	}
+	return NULL;
+}
+
+void putas(char s[], unsigned long long num_digits)
+{
+	unsigned long long i;
+	for (i = 0; i < num_digits; i++) {
+		if (s[i] == '\0')
+			break;
+
+		if ('0' <= s[i] && s[i] <= '9')
+			putc(L'0' + s[i] - '0');
+		else if ('A' <= s[i] && s[i] <= 'Z')
+			putc(L'A' + s[i] - 'A');
+		else if ('a' <= s[i] && s[i] <= 'z')
+			putc(L'a' + s[i] - 'a');
+		else {
+			switch (s[i]) {
+			case ' ':
+				putc(L' ');
+				break;
+			}
+		}
+	}
 }

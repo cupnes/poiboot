@@ -17,8 +17,11 @@ deploy: poiboot.efi
 	mkdir -p ../fs/EFI/BOOT
 	cp $< ../fs/EFI/BOOT/BOOTX64.EFI
 
+run: deploy
+	qemu-system-x86_64 -m 4G -bios OVMF.fd -hda fat:../fs
+
 clean:
-	rm -f *~ *.o *.efi
+	rm -f *~ include/*~ *.o *.efi
 	make -C libuefi clean
 
-.PHONY: clean
+.PHONY: deploy run clean
