@@ -11,6 +11,11 @@
 
 #define MB		1048576	/* 1024 * 1024 */
 
+struct platform_info {
+	struct fb fb;
+	void *rsdp;
+} pi;
+
 void load_config(
 	struct EFI_FILE_PROTOCOL *root, unsigned short *conf_file_name,
 	unsigned long long *kernel_start, unsigned long long *stack_base,
@@ -30,18 +35,6 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 
 	puts(L"Starting poiboot ...\r\n");
 
-	/* RSDPのシグネチャを表示して停止する */
-	char *s = find_efi_acpi_table();
-	putc(*s++);	/* 'R' */
-	putc(*s++);	/* 'S' */
-	putc(*s++);	/* 'D' */
-	putc(*s++);	/* ' ' */
-	putc(*s++);	/* 'P' */
-	putc(*s++);	/* 'T' */
-	putc(*s++);	/* 'R' */
-	putc(*s);	/* ' ' */
-	while (TRUE);
-
 	/* ボリュームのルートディレクトリを開く */
 	struct EFI_FILE_PROTOCOL *root;
 	unsigned long long status = SFSP->OpenVolume(SFSP, &root);
@@ -60,7 +53,12 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 	unsigned long long kernel_arg1 = (unsigned long long)ST;
 	put_param(L"kernel_arg1", kernel_arg1);
 	init_fb();
-	unsigned long long kernel_arg2 = (unsigned long long)&fb;
+	pi.fb.base = fb.base;
+	pi.fb.size = fb.size;
+	pi.fb.hr = fb.hr;
+	pi.fb.vr = fb.vr;
+	pi.rsdp = find_efi_acpi_table();
+	unsigned long long kernel_arg2 = (unsigned long long)&pi;
 	put_param(L"kernel_arg2", kernel_arg2);
 	unsigned long long kernel_arg3;
 	if (has_fs == TRUE)
