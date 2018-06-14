@@ -308,6 +308,11 @@ struct EFI_SYSTEM_TABLE {
 			unsigned char Value);
 		unsigned long long _buf12;
 	} *BootServices;
+	unsigned long long NumberOfTableEntries;
+	struct EFI_CONFIGURATION_TABLE {
+		struct EFI_GUID VendorGuid;
+		void *VendorTable;
+	} *ConfigurationTable;
 };
 
 struct EFI_GRAPHICS_OUTPUT_BLT_PIXEL {
@@ -500,5 +505,6 @@ extern struct EFI_GUID dpp_guid;
 extern struct EFI_GUID fi_guid;
 
 void efi_init(struct EFI_SYSTEM_TABLE *SystemTable);
+void dump_efi_configuration_table(void);
 
 #endif

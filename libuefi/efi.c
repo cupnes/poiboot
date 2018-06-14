@@ -53,3 +53,27 @@ void efi_init(struct EFI_SYSTEM_TABLE *SystemTable)
 	ST->BootServices->LocateProtocol(&dpftp_guid, NULL, (void **)&DPFTP);
 	ST->BootServices->LocateProtocol(&dpup_guid, NULL, (void **)&DPUP);
 }
+
+void dump_efi_configuration_table(void)
+{
+	unsigned long long i;
+	for (i = 0; i < ST->NumberOfTableEntries; i++) {
+		puth(i, 1);
+		putc(L':');
+		puth((unsigned long long)&ST->ConfigurationTable[i], 16);
+		putc(L':');
+		puth(ST->ConfigurationTable[i].VendorGuid.Data1, 8);
+		putc(L' ');
+		puth(ST->ConfigurationTable[i].VendorGuid.Data2, 4);
+		putc(L' ');
+		puth(ST->ConfigurationTable[i].VendorGuid.Data3, 4);
+		putc(L' ');
+		unsigned char j;
+		for (j = 0; j < 8; j++)
+			puth(ST->ConfigurationTable[i].VendorGuid.Data4[j], 2);
+		putc(L':');
+		puth((unsigned long long)ST->ConfigurationTable[i].VendorTable,
+		     16);
+		puts(L"\r\n");
+	}
+}

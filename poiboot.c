@@ -30,6 +30,10 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 
 	puts(L"Starting poiboot ...\r\n");
 
+	/* ConfigurationTableの内容を表示して停止する */
+	dump_efi_configuration_table();
+	while (TRUE);
+
 	/* ボリュームのルートディレクトリを開く */
 	struct EFI_FILE_PROTOCOL *root;
 	unsigned long long status = SFSP->OpenVolume(SFSP, &root);
