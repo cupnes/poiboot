@@ -77,3 +77,28 @@ void dump_efi_configuration_table(void)
 		puts(L"\r\n");
 	}
 }
+
+void *find_efi_acpi_table(void)
+{
+	const struct EFI_GUID efi_acpi_table = {
+		0x8868e871, 0xe4f1,0x11d3,
+		{0xbc, 0x22, 0x00, 0x80, 0xc7, 0x3c, 0x88, 0x81}};
+
+	unsigned long long i;
+	for (i = 0; i < ST->NumberOfTableEntries; i++) {
+		struct EFI_GUID *guid = &ST->ConfigurationTable[i].VendorGuid;
+		if ((guid->Data1 == efi_acpi_table.Data1)
+		    && (guid->Data2 == efi_acpi_table.Data2)
+		    && (guid->Data3 == efi_acpi_table.Data3)) {
+			unsigned char is_equal = TRUE;
+			unsigned char j;
+			for (j = 0; j < 8; j++) {
+				if (guid->Data4[j] != efi_acpi_table.Data4[j])
+					is_equal = FALSE;
+			}
+			if (is_equal == TRUE)
+				return ST->ConfigurationTable[i].VendorTable;
+		}
+	}
+	return NULL;
+}

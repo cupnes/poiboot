@@ -30,8 +30,16 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 
 	puts(L"Starting poiboot ...\r\n");
 
-	/* ConfigurationTableの内容を表示して停止する */
-	dump_efi_configuration_table();
+	/* RSDPのシグネチャを表示して停止する */
+	char *s = find_efi_acpi_table();
+	putc(*s++);	/* 'R' */
+	putc(*s++);	/* 'S' */
+	putc(*s++);	/* 'D' */
+	putc(*s++);	/* ' ' */
+	putc(*s++);	/* 'P' */
+	putc(*s++);	/* 'T' */
+	putc(*s++);	/* 'R' */
+	putc(*s);	/* ' ' */
 	while (TRUE);
 
 	/* ボリュームのルートディレクトリを開く */
