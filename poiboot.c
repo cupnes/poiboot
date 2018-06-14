@@ -7,7 +7,7 @@
 #define CONF_FILE_NAME	L"poiboot.conf"
 
 #define KERNEL_FILE_NAME	L"kernel.bin"
-#define APPS_FILE_NAME	L"fs.img"
+#define FS_FILE_NAME	L"fs.img"
 
 #define MB		1048576	/* 1024 * 1024 */
 
@@ -17,7 +17,7 @@ void put_param(unsigned short *name, unsigned long long val);
 void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 {
 	unsigned long long status;
-	unsigned char has_apps = TRUE;
+	unsigned char has_fs = TRUE;
 
 	efi_init(SystemTable);
 
@@ -36,7 +36,7 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 
 	struct config {
 		char kernel_start[17];
-		char apps_start[17];
+		char fs_start[17];
 	} conf;
 
 	unsigned long long conf_size = sizeof(conf);
@@ -52,8 +52,8 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 	unsigned long long stack_base = kernel_start + (1 * MB);
 			/* stack_baseはスタックの底のアドレス(上へ伸びる) */
 	put_param(L"stack_base", stack_base);
-	unsigned long long apps_start = hexstrtoull(conf.apps_start);
-	put_param(L"apps_start", apps_start);
+	unsigned long long fs_start = hexstrtoull(conf.fs_start);
+	put_param(L"fs_start", fs_start);
 
 
 	/* load the kernel */
@@ -93,31 +93,31 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 	puts(L"\r\n");
 
 
-	/* load the applications */
-	struct EFI_FILE_PROTOCOL *file_apps;
+	/* load the fs */
+	struct EFI_FILE_PROTOCOL *file_fs;
 	status = root->Open(
-		root, &file_apps, APPS_FILE_NAME, EFI_FILE_MODE_READ, 0);
-	if (!check_warn_error(status, L"root->Open(apps)")) {
-		puts(L"apps load failure. skip.\r\n");
-		has_apps = FALSE;
+		root, &file_fs, FS_FILE_NAME, EFI_FILE_MODE_READ, 0);
+	if (!check_warn_error(status, L"root->Open(fs)")) {
+		puts(L"fs load failure. skip.\r\n");
+		has_fs = FALSE;
 	}
 
-	if (has_apps) {
-		unsigned long long apps_size = get_file_size(file_apps);
-		put_param(L"apps_size", apps_size);
+	if (has_fs) {
+		unsigned long long fs_size = get_file_size(file_fs);
+		put_param(L"fs_size", fs_size);
 
-		puts(L"load apps ... ");
-		safety_file_read(file_apps, (void *)apps_start, apps_size);
+		puts(L"load fs ... ");
+		safety_file_read(file_fs, (void *)fs_start, fs_size);
 		puts(L"done\r\n");
-		file_apps->Close(file_apps);
+		file_fs->Close(file_fs);
 
-		puts(L"apps first 16 bytes: 0x");
-		put_n_bytes((unsigned char *)apps_start, 16);
+		puts(L"fs first 16 bytes: 0x");
+		put_n_bytes((unsigned char *)fs_start, 16);
 		puts(L"\r\n");
-		puts(L"apps last 16 bytes: 0x");
-		unsigned char *apps_last =
-			(unsigned char *)(apps_start + apps_size - 16);
-		put_n_bytes(apps_last, 16);
+		puts(L"fs last 16 bytes: 0x");
+		unsigned char *fs_last =
+			(unsigned char *)(fs_start + fs_size - 16);
+		put_n_bytes(fs_last, 16);
 		puts(L"\r\n");
 	}
 
@@ -128,8 +128,8 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 	unsigned long long kernel_arg2 = (unsigned long long)&fb;
 	put_param(L"kernel_arg2", kernel_arg2);
 	unsigned long long kernel_arg3;
-	if (has_apps == TRUE)
-		kernel_arg3 = apps_start;
+	if (has_fs == TRUE)
+		kernel_arg3 = fs_start;
 	else
 		kernel_arg3 = 0;
 	put_param(L"kernel_arg3", kernel_arg3);
