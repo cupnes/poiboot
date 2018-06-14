@@ -21,7 +21,7 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 
 	efi_init(SystemTable);
 
-	puts(L"Starting OS5 UEFI bootloader ...\r\n");
+	puts(L"Starting poiboot ...\r\n");
 
 	struct EFI_FILE_PROTOCOL *root;
 	status = SFSP->OpenVolume(SFSP, &root);
