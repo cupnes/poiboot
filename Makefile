@@ -15,6 +15,7 @@ libuefi/libuefi.a:
 
 deploy: poiboot.efi
 	mkdir -p ../fs/EFI/BOOT
+	cp poiboot_default.conf ../fs/poiboot.conf
 	cp $< ../fs/EFI/BOOT/BOOTX64.EFI
 
 run: deploy
