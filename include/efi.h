@@ -492,6 +492,57 @@ struct EFI_DEVICE_PATH_UTILITIES_PROTOCOL {
 		const struct EFI_DEVICE_PATH_PROTOCOL *DeviceNode);
 };
 
+struct EFI_CPU_PHYSICAL_LOCATION {
+	unsigned int Package;
+	unsigned int Core;
+	unsigned int Thread;
+};
+
+struct EFI_PROCESSOR_INFORMATION {
+	unsigned long long ProcessorId;
+	unsigned int StatusFlag;
+	struct EFI_CPU_PHYSICAL_LOCATION Location;
+};
+
+struct EFI_MP_SERVICES_PROTOCOL {
+	unsigned long long (*GetNumberOfProcessors)(
+		struct EFI_MP_SERVICES_PROTOCOL *This,
+		unsigned long long *NumberOfProcessors,
+		unsigned long long *NumberOfEnabledProcessors);
+	unsigned long long (*GetProcessorInfo)(
+		struct EFI_MP_SERVICES_PROTOCOL *This,
+		unsigned long long ProcessorNumber,
+		struct EFI_PROCESSOR_INFORMATION *ProcessorInfoBuffer);
+	unsigned long long (*StartupAllAPs)(
+		struct EFI_MP_SERVICES_PROTOCOL *This,
+		void (*Procedure)(void *ProcedureArgument),
+		unsigned char SingleThread,
+		void *WaitEvent,
+		unsigned long long TimeoutInMicroSeconds,
+		void *ProcedureArgument,
+		unsigned long long **FailedCpuList);
+	unsigned long long (*StartupThisAP)(
+		struct EFI_MP_SERVICES_PROTOCOL *This,
+		void (*Procedure)(void *ProcedureArgument),
+		unsigned long long ProcessorNumber,
+		void *WaitEvent,
+		unsigned long long TimeoutInMicroseconds,
+		void *ProcedureArgument,
+		unsigned char *Finished);
+	unsigned long long (*SwitchBSP)(
+		struct EFI_MP_SERVICES_PROTOCOL *This,
+		unsigned long long ProcessorNumber,
+		unsigned char EnableOldBSP);
+	unsigned long long (*EnableDisableAP)(
+		struct EFI_MP_SERVICES_PROTOCOL *This,
+		unsigned long long ProcessorNumber,
+		unsigned char EnableAP,
+		unsigned int *HealthFlag);
+	unsigned long long (*WhoAmI)(
+		struct EFI_MP_SERVICES_PROTOCOL *This,
+		unsigned long long *ProcessorNumber);
+};
+
 extern struct EFI_SYSTEM_TABLE *ST;
 extern struct EFI_GRAPHICS_OUTPUT_PROTOCOL *GOP;
 extern struct EFI_SIMPLE_POINTER_PROTOCOL *SPP;
@@ -500,6 +551,7 @@ extern struct EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *STIEP;
 extern struct EFI_DEVICE_PATH_TO_TEXT_PROTOCOL *DPTTP;
 extern struct EFI_DEVICE_PATH_FROM_TEXT_PROTOCOL *DPFTP;
 extern struct EFI_DEVICE_PATH_UTILITIES_PROTOCOL *DPUP;
+extern struct EFI_MP_SERVICES_PROTOCOL *MSP;
 extern struct EFI_GUID lip_guid;
 extern struct EFI_GUID dpp_guid;
 extern struct EFI_GUID fi_guid;

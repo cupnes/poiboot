@@ -9,6 +9,7 @@ struct EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *STIEP;
 struct EFI_DEVICE_PATH_TO_TEXT_PROTOCOL *DPTTP;
 struct EFI_DEVICE_PATH_FROM_TEXT_PROTOCOL *DPFTP;
 struct EFI_DEVICE_PATH_UTILITIES_PROTOCOL *DPUP;
+struct EFI_MP_SERVICES_PROTOCOL *MSP;
 struct EFI_GUID lip_guid = {0x5b1b31a1, 0x9562, 0x11d2,
 			    {0x8e, 0x3f, 0x00, 0xa0,
 			     0xc9, 0x69, 0x72, 0x3b}};
@@ -42,6 +43,9 @@ void efi_init(struct EFI_SYSTEM_TABLE *SystemTable)
 	struct EFI_GUID dpup_guid = {0x379be4e, 0xd706, 0x437d,
 				     {0xb0, 0x37, 0xed, 0xb8,
 				      0x2f, 0xb7, 0x72, 0xa4}};
+	struct EFI_GUID msp_guid = {0x3fdda605, 0xa76e, 0x4f46,
+				    {0xad, 0x29, 0x12, 0xf4,
+				     0x53, 0x1b, 0x3d, 0x08}};
 
 	ST = SystemTable;
 	ST->BootServices->SetWatchdogTimer(0, 0, 0, NULL);
@@ -52,6 +56,7 @@ void efi_init(struct EFI_SYSTEM_TABLE *SystemTable)
 	ST->BootServices->LocateProtocol(&dpttp_guid, NULL, (void **)&DPTTP);
 	ST->BootServices->LocateProtocol(&dpftp_guid, NULL, (void **)&DPFTP);
 	ST->BootServices->LocateProtocol(&dpup_guid, NULL, (void **)&DPUP);
+	ST->BootServices->LocateProtocol(&msp_guid, NULL, (void **)&MSP);
 }
 
 void dump_efi_configuration_table(void)
