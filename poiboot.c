@@ -11,22 +11,20 @@
 
 #define MB		1048576	/* 1024 * 1024 */
 
-#define NPROCS	4
-
-#define WAIT_FOR_AP_USECS	500000
+/* AP側のUEFI処理完了までの待ち時間(単位: マイクロ秒) */
+#define WAIT_FOR_AP_USECS	100000 /* 100ms */
 
 struct __attribute__((packed)) platform_info {
 	struct fb fb;
 	void *rsdp;
-	unsigned char pnum;
-} pi[NPROCS];
+	void *fs_start;
+	unsigned int nproc;
+} pi;
 
 struct ap_info {
-	unsigned long long stack_base;
 	unsigned long long kernel_start;
-	unsigned long long system_table;
-	unsigned long long platform_info;
-	unsigned long long fs_start;
+	unsigned long long stack_space_start;
+	struct EFI_SYSTEM_TABLE *system_table;
 } ai;
 
 void load_config(
@@ -67,30 +65,31 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 	unsigned long long kernel_arg1 = (unsigned long long)ST;
 	put_param(L"kernel_arg1", kernel_arg1);
 	init_fb();
-	pi[0].fb.base = fb.base;
-	pi[0].fb.size = fb.size;
-	pi[0].fb.hr = fb.hr;
-	pi[0].fb.vr = fb.vr;
-	pi[0].rsdp = find_efi_acpi_table();
-	unsigned long long _pnum;
-	status = MSP->WhoAmI(MSP, &_pnum);
-	assert(status, L"MSP->WhoAmI");
-	pi[0].pnum = (unsigned char)_pnum;
-	unsigned long long kernel_arg2 = (unsigned long long)&pi[0];
-	put_param(L"kernel_arg2", kernel_arg2);
-	unsigned long long kernel_arg3;
+	pi.fb.base = fb.base;
+	pi.fb.size = fb.size;
+	pi.fb.hr = fb.hr;
+	pi.fb.vr = fb.vr;
+	pi.rsdp = find_efi_acpi_table();
 	if (has_fs == TRUE)
-		kernel_arg3 = fs_start;
+		pi.fs_start = (void *)fs_start;
 	else
-		kernel_arg3 = 0;
+		pi.fs_start = NULL;
+	unsigned long long nproc, nproc_en;
+	status = MSP->GetNumberOfProcessors(MSP, &nproc, &nproc_en);
+	assert(status, L"MSP->GetNumberOfProcessors");
+	pi.nproc = nproc_en;
+	unsigned long long kernel_arg2 = (unsigned long long)&pi;
+	put_param(L"kernel_arg2", kernel_arg2);
+	unsigned long long pnum;
+	status = MSP->WhoAmI(MSP, &pnum);
+	assert(status, L"MSP->WhoAmI");
+	unsigned long long kernel_arg3 = pnum;
 	put_param(L"kernel_arg3", kernel_arg3);
 
 	/* APを起動 */
-	ai.stack_base = stack_base;
 	ai.kernel_start = kernel_start;
-	ai.system_table = kernel_arg1;
-	ai.platform_info = kernel_arg2;
-	ai.fs_start = kernel_arg3;
+	ai.stack_space_start = stack_base;
+	ai.system_table = ST;
 	status = MSP->StartupAllAPs(
 		MSP, ap_main, 0, NULL, WAIT_FOR_AP_USECS, &ai, NULL);
 
@@ -234,27 +233,20 @@ void put_param(unsigned short *name, unsigned long long val)
 void ap_main(void *_ai)
 {
 	struct ap_info *ai = _ai;
-	efi_init((struct EFI_SYSTEM_TABLE *)ai->system_table);
+	efi_init(ai->system_table);
 
 	unsigned long long pnum;
 	unsigned long long status = MSP->WhoAmI(MSP, &pnum);
 	assert(status, L"MSP->WhoAmI");
 
-	unsigned long long stack_base = ai->stack_base + (pnum * MB);
+	unsigned long long stack_base = ai->stack_space_start + (pnum * MB);
 
-	unsigned long long kernel_start = ai->kernel_start;
-
-	unsigned long long kernel_arg1 = ai->system_table;
-
-	struct platform_info *_pi = (struct platform_info *)ai->platform_info;
-	_pi += pnum;
-	_pi->pnum = pnum;
-	unsigned long long kernel_arg2 = (unsigned long long)_pi;
-
-	unsigned long long kernel_arg3 = ai->fs_start;
+	unsigned long long kernel_arg1 = (unsigned long long)ST;
+	unsigned long long kernel_arg2 = 0;
+	unsigned long long kernel_arg3 = pnum;
 
 	/* カーネルへ渡す引数設定(引数に使うレジスタへセットする) */
-	unsigned long long _sb = stack_base, _ks = kernel_start;
+	unsigned long long _sb = stack_base, _ks = ai->kernel_start;
 	__asm__ ("	mov	%0, %%rdx\n"
 		 "	mov	%1, %%rsi\n"
 		 "	mov	%2, %%rdi\n"
