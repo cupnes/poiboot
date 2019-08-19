@@ -1,6 +1,7 @@
 #include <efi.h>
 #include <common.h>
 
+#define OUTPUT_DISABLE
 #define MAX_STR_BUF	100
 
 void putc(unsigned short c)
@@ -10,10 +11,17 @@ void putc(unsigned short c)
 	ST->ConOut->OutputString(ST->ConOut, str);
 }
 
+#ifdef OUTPUT_DISABLE
+void puts(unsigned short *s __attribute__((unused)))
+{
+	return;
+}
+#else
 void puts(unsigned short *s)
 {
 	ST->ConOut->OutputString(ST->ConOut, s);
 }
+#endif
 
 void puth(unsigned long long val, unsigned char num_digits)
 {
