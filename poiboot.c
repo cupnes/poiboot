@@ -86,6 +86,9 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 	unsigned long long kernel_arg3 = pnum;
 	put_param(L"kernel_arg3", kernel_arg3);
 
+	/* 画面クリア */
+	ST->ConOut->ClearScreen(ST->ConOut);
+
 	/* APを起動 */
 	ai.kernel_start = kernel_start;
 	ai.stack_space_start = stack_base;
