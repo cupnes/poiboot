@@ -3,13 +3,10 @@
 #include <mem.h>
 #include <fb.h>
 #include <file.h>
-
-#define CONF_FILE_NAME	L"poiboot.conf"
+#include <config.h>
 
 #define KERNEL_FILE_NAME	L"kernel.bin"
 #define FS_FILE_NAME	L"fs.img"
-
-#define MB		1048576	/* 1024 * 1024 */
 
 /* AP側のUEFI処理完了までの待ち時間(単位: マイクロ秒) */
 #define WAIT_FOR_AP_USECS	100000 /* 100ms */
@@ -27,10 +24,6 @@ struct ap_info {
 	struct EFI_SYSTEM_TABLE *system_table;
 } ai;
 
-void load_config(
-	struct EFI_FILE_PROTOCOL *root, unsigned short *conf_file_name,
-	unsigned long long *kernel_start, unsigned long long *stack_base,
-	unsigned long long *fs_start);
 void load_kernel(
 	struct EFI_FILE_PROTOCOL *root, unsigned short *kernel_file_name,
 	unsigned long long kernel_start);
@@ -44,6 +37,7 @@ void ap_main(void *_ai);
 void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 {
 	efi_init(SystemTable);
+	config_init();
 
 	puts(L"Starting poiboot ...\r\n");
 
@@ -110,38 +104,6 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 		  "m"(_sb), "m"(_ks));
 
 	while (TRUE);
-}
-
-void load_config(
-	struct EFI_FILE_PROTOCOL *root, unsigned short *conf_file_name,
-	unsigned long long *kernel_start, unsigned long long *stack_base,
-	unsigned long long *fs_start)
-{
-	struct EFI_FILE_PROTOCOL *file_conf;
-	unsigned long long status = root->Open(
-		root, &file_conf, conf_file_name, EFI_FILE_MODE_READ, 0);
-	assert(status, L"Can't open config file.");
-
-	struct config {
-		char kernel_start[17];
-		char fs_start[17];
-	} conf;
-
-	unsigned long long conf_size = sizeof(conf);
-	put_param(L"conf_size", conf_size);
-
-	puts(L"load conf ... ");
-	safety_file_read(file_conf, (void *)&conf, conf_size);
-	puts(L"done\r\n");
-	file_conf->Close(file_conf);
-
-	*kernel_start = hexstrtoull(conf.kernel_start);
-	put_param(L"kernel_start", *kernel_start);
-	*stack_base = *kernel_start + (1 * MB);
-			/* stack_baseはスタックの底のアドレス(上へ伸びる) */
-	put_param(L"stack_base", *stack_base);
-	*fs_start = hexstrtoull(conf.fs_start);
-	put_param(L"fs_start", *fs_start);
 }
 
 void load_kernel(
@@ -223,14 +185,6 @@ void put_n_bytes(unsigned char *addr, unsigned int num)
 		puth(*addr++, 2);
 		putc(L' ');
 	}
-}
-
-void put_param(unsigned short *name, unsigned long long val)
-{
-	puts(name);
-	puts(L": 0x");
-	puth(val, 16);
-	puts(L"\r\n");
 }
 
 void ap_main(void *_ai)

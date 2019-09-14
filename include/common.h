@@ -6,13 +6,16 @@
 #define FALSE	0
 #define SC_OFS	0x1680
 #define SC_ESC	(SC_OFS + 0x0017)
+#define MB	1048576	/* 1024 * 1024 */
 
 void putc(unsigned short c);
 void puts(unsigned short *s);
 void puth(unsigned long long val, unsigned char num_digits);
+void put_param(unsigned short *name, unsigned long long val);
 unsigned short getc(void);
 unsigned int gets(unsigned short *buf, unsigned int buf_size);
 int strcmp(const unsigned short *s1, const unsigned short *s2);
+int strcmp_char(const char *s1, const char *s2);
 void strncpy(unsigned short *dst, unsigned short *src, unsigned long long n);
 unsigned long long strlen(unsigned short *str);
 unsigned long long hexstrtoull(char *str);

@@ -42,6 +42,14 @@ void puth(unsigned long long val, unsigned char num_digits)
 	puts(str);
 }
 
+void put_param(unsigned short *name, unsigned long long val)
+{
+	puts(name);
+	puts(L": 0x");
+	puth(val, 16);
+	puts(L"\r\n");
+}
+
 unsigned short getc(void)
 {
 	struct EFI_INPUT_KEY key;
@@ -88,6 +96,30 @@ int strcmp(const unsigned short *s1, const unsigned short *s2)
 		if (*s1 != L'\0') {
 			return 1;
 		} else if (*s2 != L'\0') {
+			return -1;
+		} else {
+			return 0;
+		}
+	} else {
+		return (int)(*s1 - *s2);
+	}
+}
+
+int strcmp_char(const char *s1, const char *s2)
+{
+	char is_equal = 1;
+
+	for (; (*s1 != '\0') && (*s2 != '\0'); s1++, s2++) {
+		if (*s1 != *s2) {
+			is_equal = 0;
+			break;
+		}
+	}
+
+	if (is_equal) {
+		if (*s1 != '\0') {
+			return 1;
+		} else if (*s2 != '\0') {
 			return -1;
 		} else {
 			return 0;

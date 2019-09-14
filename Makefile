@@ -4,6 +4,7 @@ OBJCOPY = x86_64-w64-mingw32-objcopy
 CFLAGS  = -Wall -Wextra
 CFLAGS += -nostdinc -nostdlib -fno-builtin -fno-common
 CFLAGS += -Wl,--subsystem,10
+OBJS    = poiboot.o config.o
 ifdef NO_GRAPHIC
 	QEMU_ADDITIONAL_ARGS += --nographic
 endif
@@ -11,10 +12,10 @@ ifdef SMP
 	QEMU_ADDITIONAL_ARGS += -smp ${SMP}
 endif
 
-poiboot.efi: poiboot.o libuefi/libuefi.a
+poiboot.efi: $(OBJS) libuefi/libuefi.a
 	$(CC) $(CFLAGS) -e efi_main -o $@ $+
 
-poiboot.o: poiboot.c
+%.o: %.c
 	$(CC) $(CFLAGS) -Iinclude -c -o $@ $<
 
 libuefi/libuefi.a:
@@ -22,7 +23,6 @@ libuefi/libuefi.a:
 
 deploy: poiboot.efi
 	mkdir -p $(FS_DIR)/EFI/BOOT
-	cp poiboot_default.conf $(FS_DIR)/poiboot.conf
 	cp $< $(FS_DIR)/EFI/BOOT/BOOTX64.EFI
 
 run: deploy
