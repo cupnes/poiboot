@@ -25,11 +25,9 @@ struct ap_info {
 } ai;
 
 void load_kernel(
-	struct EFI_FILE_PROTOCOL *root, unsigned short *kernel_file_name,
-	unsigned long long kernel_start);
+	struct EFI_FILE_PROTOCOL *root, unsigned short *kernel_file_name);
 unsigned char load_fs(
-	struct EFI_FILE_PROTOCOL *root, unsigned short *fs_file_name,
-	unsigned long long fs_start);
+	struct EFI_FILE_PROTOCOL *root, unsigned short *fs_file_name);
 void put_n_bytes(unsigned char *addr, unsigned int num);
 void put_param(unsigned short *name, unsigned long long val);
 void ap_main(void *_ai);
@@ -49,11 +47,9 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 	/* コンフィグファイル・カーネルバイナリ・ファイルシステムイメージを
 	 * 開き、コンフィグファイルの内容に従って
 	 * カーネルバイナリとファイルシステムイメージをメモリへロードする */
-	unsigned long long kernel_start, stack_base, fs_start;
-	load_config(root, CONF_FILE_NAME,
-		    &kernel_start, &stack_base, &fs_start);
-	load_kernel(root, KERNEL_FILE_NAME, kernel_start);
-	unsigned char has_fs = load_fs(root, FS_FILE_NAME, fs_start);
+	load_config(root, CONF_FILE_NAME);
+	load_kernel(root, KERNEL_FILE_NAME);
+	unsigned char has_fs = load_fs(root, FS_FILE_NAME);
 
 	/* カーネルへ引数として渡す内容を変数に準備する */
 	unsigned long long kernel_arg1 = (unsigned long long)ST;
@@ -65,7 +61,7 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 	pi.fb.vr = fb.vr;
 	pi.rsdp = find_efi_acpi_table();
 	if (has_fs == TRUE)
-		pi.fs_start = (void *)fs_start;
+		pi.fs_start = (void *)conf.fs_start;
 	else
 		pi.fs_start = NULL;
 	unsigned long long nproc, nproc_en;
@@ -84,8 +80,8 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 	ST->ConOut->ClearScreen(ST->ConOut);
 
 	/* APを起動 */
-	ai.kernel_start = kernel_start;
-	ai.stack_space_start = stack_base;
+	ai.kernel_start = conf.kernel_start;
+	ai.stack_space_start = conf.stack_base;
 	ai.system_table = ST;
 	status = MSP->StartupAllAPs(
 		MSP, ap_main, 0, NULL, WAIT_FOR_AP_USECS, &ai, NULL);
@@ -94,7 +90,7 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 	exit_boot_services(ImageHandle);
 
 	/* カーネルへ渡す引数設定(引数に使うレジスタへセットする) */
-	unsigned long long _sb = stack_base, _ks = kernel_start;
+	unsigned long long _sb = conf.stack_base, _ks = conf.kernel_start;
 	__asm__ ("	mov	%0, %%rdx\n"
 		 "	mov	%1, %%rsi\n"
 		 "	mov	%2, %%rdi\n"
@@ -107,8 +103,7 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 }
 
 void load_kernel(
-	struct EFI_FILE_PROTOCOL *root, unsigned short *kernel_file_name,
-	unsigned long long kernel_start)
+	struct EFI_FILE_PROTOCOL *root, unsigned short *kernel_file_name)
 {
 	struct EFI_FILE_PROTOCOL *file_kernel;
 	unsigned long long status = root->Open(
@@ -130,25 +125,24 @@ void load_kernel(
 
 	kernel_size -= sizeof(head);
 	puts(L"load kernel body ... ");
-	safety_file_read(file_kernel, (void *)kernel_start, kernel_size);
+	safety_file_read(file_kernel, (void *)conf.kernel_start, kernel_size);
 	puts(L"done\r\n");
 	file_kernel->Close(file_kernel);
 
 	ST->BootServices->SetMem(head.bss_start, head.bss_size, 0);
 
 	puts(L"kernel body first 16 bytes: 0x");
-	put_n_bytes((unsigned char *)kernel_start, 16);
+	put_n_bytes((unsigned char *)conf.kernel_start, 16);
 	puts(L"\r\n");
 	puts(L"kernel body last 16 bytes: 0x");
 	unsigned char *kernel_last =
-		(unsigned char *)(kernel_start + kernel_size - 16);
+		(unsigned char *)(conf.kernel_start + kernel_size - 16);
 	put_n_bytes(kernel_last, 16);
 	puts(L"\r\n");
 }
 
 unsigned char load_fs(
-	struct EFI_FILE_PROTOCOL *root, unsigned short *fs_file_name,
-	unsigned long long fs_start)
+	struct EFI_FILE_PROTOCOL *root, unsigned short *fs_file_name)
 {
 	struct EFI_FILE_PROTOCOL *file_fs;
 	unsigned long long status = root->Open(
@@ -162,16 +156,16 @@ unsigned char load_fs(
 	put_param(L"fs_size", fs_size);
 
 	puts(L"load fs ... ");
-	safety_file_read(file_fs, (void *)fs_start, fs_size);
+	safety_file_read(file_fs, (void *)conf.fs_start, fs_size);
 	puts(L"done\r\n");
 	file_fs->Close(file_fs);
 
 	puts(L"fs first 16 bytes: 0x");
-	put_n_bytes((unsigned char *)fs_start, 16);
+	put_n_bytes((unsigned char *)conf.fs_start, 16);
 	puts(L"\r\n");
 	puts(L"fs last 16 bytes: 0x");
 	unsigned char *fs_last =
-		(unsigned char *)(fs_start + fs_size - 16);
+		(unsigned char *)(conf.fs_start + fs_size - 16);
 	put_n_bytes(fs_last, 16);
 	puts(L"\r\n");
 

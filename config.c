@@ -10,6 +10,7 @@ struct config_list conf;
 void config_init(void)
 {
 	conf.kernel_start = CONF_DEFAULT_KERNEL_START;
+	conf.stack_base = CONF_DEFAULT_STACK_BASE;
 	conf.fs_start = CONF_DEFAULT_FS_START;
 }
 
@@ -17,6 +18,8 @@ static void conf_set_val(char *name, char *val_str)
 {
 	if (!strcmp_char(name, CONF_NAME_KERNEL_START))
 		conf.kernel_start = hexstrtoull(val_str);
+	else if (!strcmp_char(name, CONF_NAME_STACK_BASE))
+		conf.stack_base = hexstrtoull(val_str);
 	else if (!strcmp_char(name, CONF_NAME_FS_START))
 		conf.fs_start = hexstrtoull(val_str);
 }
@@ -79,9 +82,7 @@ static void conf_parser(char *buf, unsigned long long buf_size)
 }
 
 void load_config(
-	struct EFI_FILE_PROTOCOL *root, unsigned short *conf_file_name,
-	unsigned long long *kernel_start, unsigned long long *stack_base,
-	unsigned long long *fs_start)
+	struct EFI_FILE_PROTOCOL *root, unsigned short *conf_file_name)
 {
 	struct EFI_FILE_PROTOCOL *file_conf;
 	unsigned long long no_conf_file = root->Open(
@@ -101,11 +102,7 @@ void load_config(
 		conf_parser(conf_buf, conf_size);
 	}
 
-	*kernel_start = conf.kernel_start;
-	put_param(L"kernel_start", *kernel_start);
-	*stack_base = *kernel_start + (1 * MB);
-			/* stack_baseはスタックの底のアドレス(上へ伸びる) */
-	put_param(L"stack_base", *stack_base);
-	*fs_start = conf.fs_start;
-	put_param(L"fs_start", *fs_start);
+	put_param(L"kernel_start", conf.kernel_start);
+	put_param(L"stack_base", conf.stack_base);
+	put_param(L"fs_start", conf.fs_start);
 }
