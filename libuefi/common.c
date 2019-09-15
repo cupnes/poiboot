@@ -1,7 +1,7 @@
 #include <efi.h>
 #include <common.h>
 
-#define OUTPUT_DISABLE
+/* #define OUTPUT_DISABLE */
 #define MAX_STR_BUF	100
 
 void putc(unsigned short c)
