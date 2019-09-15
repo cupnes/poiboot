@@ -19,6 +19,7 @@ int strcmp_char(const char *s1, const char *s2);
 void strncpy(unsigned short *dst, unsigned short *src, unsigned long long n);
 unsigned long long strlen(unsigned short *str);
 unsigned long long hexstrtoull(char *str);
+unsigned char boolstrtouc(char *str);
 unsigned char check_warn_error(unsigned long long status, unsigned short *name);
 void assert(unsigned long long status, unsigned short *message);
 

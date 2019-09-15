@@ -12,6 +12,7 @@ void config_init(void)
 	conf.kernel_start = CONF_DEFAULT_KERNEL_START;
 	conf.stack_base = CONF_DEFAULT_STACK_BASE;
 	conf.fs_start = CONF_DEFAULT_FS_START;
+	conf.enable_ap = CONF_DEFAULT_ENABLE_AP;
 }
 
 static void conf_set_val(char *name, char *val_str)
@@ -22,6 +23,8 @@ static void conf_set_val(char *name, char *val_str)
 		conf.stack_base = hexstrtoull(val_str);
 	else if (!strcmp_char(name, CONF_NAME_FS_START))
 		conf.fs_start = hexstrtoull(val_str);
+	else if (!strcmp_char(name, CONF_NAME_ENABLE_AP))
+		conf.enable_ap = boolstrtouc(val_str);
 }
 
 static void conf_parser(char *buf, unsigned long long buf_size)
@@ -105,4 +108,5 @@ void load_config(
 	put_param(L"kernel_start", conf.kernel_start);
 	put_param(L"stack_base", conf.stack_base);
 	put_param(L"fs_start", conf.fs_start);
+	put_param(L"enable_ap", conf.enable_ap);
 }

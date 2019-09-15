@@ -172,6 +172,15 @@ unsigned long long hexstrtoull(char *str)
 	return res;
 }
 
+unsigned char boolstrtouc(char *str)
+{
+	if (!strcmp_char(str, "true") || !strcmp_char(str, "True")
+	    || !strcmp_char(str, "TRUE"))
+		return TRUE;
+	else
+		return FALSE;
+}
+
 unsigned char check_warn_error(unsigned long long status, unsigned short *message)
 {
 	if (status) {

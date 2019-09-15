@@ -80,11 +80,13 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 	ST->ConOut->ClearScreen(ST->ConOut);
 
 	/* APを起動 */
-	ai.kernel_start = conf.kernel_start;
-	ai.stack_space_start = conf.stack_base;
-	ai.system_table = ST;
-	status = MSP->StartupAllAPs(
-		MSP, ap_main, 0, NULL, WAIT_FOR_AP_USECS, &ai, NULL);
+	if (conf.enable_ap) {
+		ai.kernel_start = conf.kernel_start;
+		ai.stack_space_start = conf.stack_base;
+		ai.system_table = ST;
+		status = MSP->StartupAllAPs(
+			MSP, ap_main, 0, NULL, WAIT_FOR_AP_USECS, &ai, NULL);
+	}
 
 	/* UEFIのブートローダー向け機能を終了させる */
 	exit_boot_services(ImageHandle);

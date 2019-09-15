@@ -1,5 +1,7 @@
 #pragma once
 
+#include <common.h>
+
 #define CONF_BUF_SIZE	4096
 #define CONF_FILE_NAME	L"poiboot.conf"
 
@@ -15,10 +17,14 @@
 #define CONF_NAME_FS_START	"fs_start"
 #define CONF_DEFAULT_FS_START	0x0000000100000000
 
+#define CONF_NAME_ENABLE_AP	"enable_ap"
+#define CONF_DEFAULT_ENABLE_AP	FALSE
+
 struct config_list {
 	unsigned long long kernel_start;
 	unsigned long long stack_base;
 	unsigned long long fs_start;
+	unsigned char enable_ap;
 };
 
 extern struct config_list conf;
