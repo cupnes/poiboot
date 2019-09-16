@@ -117,6 +117,12 @@ struct EFI_MEMORY_DESCRIPTOR {
 	unsigned long long Attribute;
 };
 
+enum EFI_LOCATE_SEARCH_TYPE {
+	AllHandles,
+	ByRegisterNotify,
+	ByProtocol
+};
+
 struct EFI_SYSTEM_TABLE {
 	char _buf1[44];
 	struct EFI_SIMPLE_TEXT_INPUT_PROTOCOL {
@@ -232,7 +238,11 @@ struct EFI_SYSTEM_TABLE {
 		//
 		// Protocol Handler Services
 		//
-		unsigned long long _buf5[9];
+		unsigned long long _buf5[3];
+		unsigned long long (*HandleProtocol)(void *Handle,
+						     struct EFI_GUID *Protocol,
+						     void **Interface);
+		unsigned long long _buf5_2[5];
 
 		//
 		// Image Services
@@ -283,7 +293,13 @@ struct EFI_SYSTEM_TABLE {
 		//
 		// Library Services
 		//
-		unsigned long long _buf10[2];
+		unsigned long long _buf10;
+		unsigned long long (*LocateHandleBuffer)(
+			enum EFI_LOCATE_SEARCH_TYPE SearchType,
+			struct EFI_GUID *Protocol,
+			void *SearchKey,
+			unsigned long long *NoHandles,
+			void ***Buffer);
 		unsigned long long (*LocateProtocol)(
 			struct EFI_GUID *Protocol,
 			void *Registration,
@@ -555,6 +571,7 @@ extern struct EFI_MP_SERVICES_PROTOCOL *MSP;
 extern struct EFI_GUID lip_guid;
 extern struct EFI_GUID dpp_guid;
 extern struct EFI_GUID fi_guid;
+extern struct EFI_GUID sfsp_guid;
 
 void efi_init(struct EFI_SYSTEM_TABLE *SystemTable);
 void dump_efi_configuration_table(void);

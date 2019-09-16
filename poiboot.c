@@ -24,8 +24,8 @@ struct ap_info {
 	struct EFI_SYSTEM_TABLE *system_table;
 } ai;
 
-void load_kernel(
-	struct EFI_FILE_PROTOCOL *root, unsigned short *kernel_file_name);
+void load_kernel(struct EFI_FILE_PROTOCOL *root,
+		 unsigned short *kernel_file_name);
 unsigned char load_fs(
 	struct EFI_FILE_PROTOCOL *root, unsigned short *fs_file_name);
 void put_n_bytes(unsigned char *addr, unsigned int num);
@@ -39,10 +39,12 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 
 	puts(L"Starting poiboot ...\r\n");
 
-	/* ボリュームのルートディレクトリを開く */
-	struct EFI_FILE_PROTOCOL *root;
-	unsigned long long status = SFSP->OpenVolume(SFSP, &root);
-	assert(status, L"SFSP->OpenVolume");
+	/* "kernel.bin"を含むボリュームを探す */
+	struct EFI_FILE_PROTOCOL *root =
+		search_volume_contains_file(KERNEL_FILE_NAME);
+	if (root == NULL) {
+		assert(1, L"No volume contains kernel.bin.");
+	}
 
 	/* コンフィグファイル・カーネルバイナリ・ファイルシステムイメージを
 	 * 開き、コンフィグファイルの内容に従って
@@ -65,7 +67,8 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 	else
 		pi.fs_start = NULL;
 	unsigned long long nproc, nproc_en;
-	status = MSP->GetNumberOfProcessors(MSP, &nproc, &nproc_en);
+	unsigned long long status =
+		MSP->GetNumberOfProcessors(MSP, &nproc, &nproc_en);
 	assert(status, L"MSP->GetNumberOfProcessors");
 	pi.nproc = nproc_en;
 	unsigned long long kernel_arg2 = (unsigned long long)&pi;
@@ -104,8 +107,8 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 	while (TRUE);
 }
 
-void load_kernel(
-	struct EFI_FILE_PROTOCOL *root, unsigned short *kernel_file_name)
+void load_kernel(struct EFI_FILE_PROTOCOL *root,
+		 unsigned short *kernel_file_name)
 {
 	struct EFI_FILE_PROTOCOL *file_kernel;
 	unsigned long long status = root->Open(

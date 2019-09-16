@@ -1,6 +1,8 @@
 #ifndef _FILE_H_
 #define _FILE_H_
 
+#include <efi.h>
+
 #include "graphics.h"
 
 #define MAX_FILE_NAME_LEN	4
@@ -16,6 +18,8 @@ struct FILE {
 
 extern struct FILE file_list[MAX_FILE_NUM];
 
+struct EFI_FILE_PROTOCOL *search_volume_contains_file(
+	unsigned short *target_filename);
 unsigned long long get_file_size(struct EFI_FILE_PROTOCOL *file);
 void safety_file_read(struct EFI_FILE_PROTOCOL *src, void *dst,
 		      unsigned long long size);
