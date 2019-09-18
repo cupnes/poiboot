@@ -51,6 +51,8 @@ USBからブートするようにBIOS設定を行った上でpoibootが入った
 
 ### 2. poiboot.confのロード
 
+#### 設定できるパラメータ一覧
+
 ### 3. kernel.binのロード
 
 ### 4. fs.imgのロード
