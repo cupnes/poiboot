@@ -71,6 +71,7 @@ enable_ap|AP(*4)を起動するか否か|true/false(*5)|false
 (*4): 「Application Processor」で、起動時から動作しているプロセッサ(「BSP:BootStrap Processor」)を除いた残りすべてのプロセッサ。例えば、4つのプロセッサがある場合、BSP1つを除いた3つがAP。
 
 ### 3. kernel.binのロード
+UEFI用のパーティション直下の「kernel.bin」というファイル名の
 
 ### 4. fs.imgのロード
 
