@@ -79,7 +79,7 @@ UEFI用のパーティション直下の「kernel.bin」というファイル名
 kernel.binと同じ階層に「fs.img」というファイルがあれば、そのバイナリをそのまま、poiboot.confの「fs_start」で指定された(あるいはデフォルトの)アドレスへロードします。
 
 ### 5. APコアの起動
-poiboot.confの「」
+poiboot.confの「enable_ap」に「」
 
 ### 6. UEFIの終了
 
