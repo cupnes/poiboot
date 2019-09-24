@@ -6,6 +6,7 @@ struct fb {
 	unsigned long long size;
 	unsigned int hr;
 	unsigned int vr;
+	unsigned int px_per_sl;
 };
 
 extern struct fb fb;

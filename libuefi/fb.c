@@ -9,4 +9,5 @@ void init_fb(void)
 	fb.size = GOP->Mode->FrameBufferSize;
 	fb.hr = GOP->Mode->Info->HorizontalResolution;
 	fb.vr = GOP->Mode->Info->VerticalResolution;
+	fb.px_per_sl = GOP->Mode->Info->PixelsPerScanLine;
 }

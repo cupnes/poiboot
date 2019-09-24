@@ -354,6 +354,13 @@ struct EFI_GRAPHICS_OUTPUT_PROTOCOL {
 				PixelBltOnly,
 				PixelFormatMax
 			} PixelFormat;
+			struct EFI_PIXEL_BITMASK {
+				unsigned int RedMask;
+				unsigned int GreenMask;
+				unsigned int BlueMask;
+				unsigned int ReservedMask;
+			} PixelInformation;
+			unsigned int PixelsPerScanLine;
 		} *Info;
 		unsigned long long SizeOfInfo;
 		unsigned long long FrameBufferBase;
