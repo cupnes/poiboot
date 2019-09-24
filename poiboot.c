@@ -58,9 +58,15 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 	put_param(L"kernel_arg1", kernel_arg1);
 	init_fb();
 	pi.fb.base = fb.base;
+	put_param(L"fb.base", fb.base);
 	pi.fb.size = fb.size;
+	put_param(L"fb.size", fb.size);
 	pi.fb.hr = fb.hr;
+	put_param(L"fb.hr", fb.hr);
 	pi.fb.vr = fb.vr;
+	put_param(L"fb.vr", fb.vr);
+	pi.fb.px_per_sl = fb.px_per_sl;
+	put_param(L"px_per_sl", fb.px_per_sl);
 	pi.rsdp = find_efi_acpi_table();
 	if (has_fs == TRUE)
 		pi.fs_start = (void *)conf.fs_start;
@@ -78,6 +84,19 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 	assert(status, L"MSP->WhoAmI");
 	unsigned long long kernel_arg3 = pnum;
 	put_param(L"kernel_arg3", kernel_arg3);
+
+	/* dump pixel format */
+	puts(L"## dump pixel format ##\r\n");
+	put_param(L"MaxMode", GOP->Mode->MaxMode);
+	put_param(L"Mode", GOP->Mode->Mode);
+	put_param(L"Version", GOP->Mode->Info->Version);
+	put_param(L"HorizontalResolution", GOP->Mode->Info->HorizontalResolution);
+	put_param(L"VerticalResolution", GOP->Mode->Info->VerticalResolution);
+	put_param(L"PixelFormat", GOP->Mode->Info->PixelFormat);
+	put_param(L"PixelsPerScanLine", GOP->Mode->Info->PixelsPerScanLine);
+	put_param(L"SizeOfInfo", GOP->Mode->SizeOfInfo);
+	put_param(L"FrameBufferBase", GOP->Mode->FrameBufferBase);
+	put_param(L"FrameBufferSize", GOP->Mode->FrameBufferSize);
 
 	/* 画面クリア */
 	ST->ConOut->ClearScreen(ST->ConOut);
