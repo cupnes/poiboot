@@ -7,6 +7,7 @@ struct fb {
 	unsigned int hr;
 	unsigned int vr;
 	unsigned int px_per_sl;
+	unsigned int _padding;
 };
 
 extern struct fb fb;
