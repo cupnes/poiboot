@@ -84,7 +84,7 @@ poiboot.confの「enable_ap」に「true」が設定されている場合、AP�
 逆に「enable_ap」に「false」が指定されている場合、あるいは「enable_ap」が設定されていない場合もデフォルトの挙動として、AP側のプロセッサで何もしません。
 
 ### 6. UEFIの終了
-BSPにて、
+BSPにて、「ExitBootServices()」を呼び出して、UEFIを抜けます。
 
 ### 7. カーネルへジャンプ
 
