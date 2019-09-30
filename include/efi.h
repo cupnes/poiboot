@@ -338,30 +338,40 @@ struct EFI_GRAPHICS_OUTPUT_BLT_PIXEL {
 	unsigned char Reserved;
 };
 
+struct EFI_GRAPHICS_OUTPUT_MODE_INFORMATION {
+	unsigned int Version;
+	unsigned int HorizontalResolution;
+	unsigned int VerticalResolution;
+	enum EFI_GRAPHICS_PIXEL_FORMAT {
+		PixelRedGreenBlueReserved8BitPerColor,
+		PixelBlueGreenRedReserved8BitPerColor,
+		PixelBitMask,
+		PixelBltOnly,
+		PixelFormatMax
+	} PixelFormat;
+	struct EFI_PIXEL_BITMASK {
+		unsigned int RedMask;
+		unsigned int GreenMask;
+		unsigned int BlueMask;
+		unsigned int ReservedMask;
+	} PixelInformation;
+	unsigned int PixelsPerScanLine;
+};
+
 struct EFI_GRAPHICS_OUTPUT_PROTOCOL {
-	unsigned long long _buf[3];
+	unsigned long long (*QueryMode)(
+		struct EFI_GRAPHICS_OUTPUT_PROTOCOL *This,
+		unsigned int ModeNumber,
+		unsigned long long *SizeOfInfo,
+		struct EFI_GRAPHICS_OUTPUT_MODE_INFORMATION **Info);
+	unsigned long long (*SetMode)(
+		struct EFI_GRAPHICS_OUTPUT_PROTOCOL *This,
+		unsigned int ModeNumber);
+	unsigned long long _buf;
 	struct EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE {
 		unsigned int MaxMode;
 		unsigned int Mode;
-		struct EFI_GRAPHICS_OUTPUT_MODE_INFORMATION {
-			unsigned int Version;
-			unsigned int HorizontalResolution;
-			unsigned int VerticalResolution;
-			enum EFI_GRAPHICS_PIXEL_FORMAT {
-				PixelRedGreenBlueReserved8BitPerColor,
-				PixelBlueGreenRedReserved8BitPerColor,
-				PixelBitMask,
-				PixelBltOnly,
-				PixelFormatMax
-			} PixelFormat;
-			struct EFI_PIXEL_BITMASK {
-				unsigned int RedMask;
-				unsigned int GreenMask;
-				unsigned int BlueMask;
-				unsigned int ReservedMask;
-			} PixelInformation;
-			unsigned int PixelsPerScanLine;
-		} *Info;
+		struct EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *Info;
 		unsigned long long SizeOfInfo;
 		unsigned long long FrameBufferBase;
 		unsigned long long FrameBufferSize;

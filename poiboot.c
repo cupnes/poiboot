@@ -7,6 +7,8 @@
 
 #define KERNEL_FILE_NAME	L"kernel.bin"
 #define FS_FILE_NAME	L"fs.img"
+#define GRAPHICS_MODE_WIDTH	640
+#define GRAPHICS_MODE_HEIGHT	480
 
 /* AP側のUEFI処理完了までの待ち時間(単位: マイクロ秒) */
 #define WAIT_FOR_AP_USECS	100000 /* 100ms */
@@ -56,7 +58,11 @@ void efi_main(void *ImageHandle, struct EFI_SYSTEM_TABLE *SystemTable)
 	/* カーネルへ引数として渡す内容を変数に準備する */
 	unsigned long long kernel_arg1 = (unsigned long long)ST;
 	put_param(L"kernel_arg1", kernel_arg1);
-	init_fb();
+
+	/* dump_available_graphic_modes(); */
+	/* while (TRUE); */
+
+	init_fb(GRAPHICS_MODE_WIDTH, GRAPHICS_MODE_HEIGHT);
 	pi.fb.base = fb.base;
 	put_param(L"fb.base", fb.base);
 	pi.fb.size = fb.size;

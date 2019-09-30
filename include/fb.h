@@ -12,6 +12,8 @@ struct fb {
 
 extern struct fb fb;
 
-void init_fb(void);
+void init_fb(unsigned int mode_width, unsigned int mode_height);
+void dump_available_graphic_modes(void);
+int search_graphic_mode(unsigned int hr, unsigned int vr);
 
 #endif
